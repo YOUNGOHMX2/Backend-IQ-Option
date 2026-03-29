@@ -10,7 +10,7 @@ CORS(app)
 
 # --- 1. การตั้งค่า Gemini AI ---
 # นำ API Key ที่ได้จาก Google AI Studio มาวางในเครื่องหมายคำพูดด้านล่างนี้
-API_KEY = "คัดลอก_API_Key_มาวางตรงนี้" 
+API_KEY = "AIzaSyCWis4XNGkIiY0hmXJ3Gp2EIOdYfSI410s" 
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
