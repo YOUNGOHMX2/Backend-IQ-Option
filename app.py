@@ -1,48 +1,59 @@
+import google.generativeai as genai
+from PIL import Image
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import time
-import random
+import os
+import io
 
 app = Flask(__name__)
 CORS(app)
+
+# --- 1. การตั้งค่า Gemini AI ---
+# นำ API Key ที่ได้จาก Google AI Studio มาวางในเครื่องหมายคำพูดด้านล่างนี้
+API_KEY = "คัดลอก_API_Key_มาวางตรงนี้" 
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 @app.route('/analyze', methods=['POST'])
 def analyze_chart():
     # ตรวจสอบว่ามีไฟล์ส่งมาไหม
     if 'image' not in request.files:
-        return jsonify({"error": "ไม่พบไฟล์รูปภาพ"}), 400
+        return jsonify({"error": "No image uploaded"}), 400
     
-    # จำลองเวลาประมวลผล (เหมือน AI กำลังคิดจริงๆ)
-    time.sleep(3) 
+    try:
+        # 2. รับรูปจากหน้าเว็บและแปลงให้พร้อมส่งให้ AI
+        file = request.files['image']
+        image_data = file.read()
+        image = Image.open(io.BytesIO(image_data))
 
-    # สุ่มผลวิเคราะห์จำลอง (ให้ดูเหมือน AI วิเคราะห์ละเอียด)
-    patterns = ["Bullish Engulfing", "Head and Shoulders", "Double Bottom", "Hammer Pin Bar"]
-    selected_pattern = random.choice(patterns)
-    up_percent = random.randint(60, 85)
-    down_percent = 100 - up_percent
-    # --- ส่วนที่เพิ่มใหม่ (คำนวณ SL/TP) ---
-    current_price = round(random.uniform(1.0500, 1.0900), 5)
-    sl = round(current_price - 0.0025, 5) # จุดตัดขาดทุน
-    tp = round(current_price + 0.0050, 5) # จุดทำกำไร
-    # ----------------------------------
+        # 3. คำสั่ง (Prompt) จ้าง AI ให้วิเคราะห์
+        prompt = """
+        คุณคือผู้เชี่ยวชาญด้านการเทรด (Expert Trader) จงวิเคราะห์รูปกราฟนี้ด้วยความละเอียด:
+        1. ระบุชื่อ Pattern ที่เห็น (เช่น Bullish Engulfing, Head and Shoulders) 
+        2. วิเคราะห์แนวโน้มตลาดปัจจุบัน (Bullish / Bearish / Sideways)
+        3. ให้จุดเข้า (Entry), จุดตัดขาดทุน (Stop Loss - SL) และจุดทำกำไร (Take Profit - TP) 
+        4. ให้คำแนะนำเพิ่มเติมในการบริหารความเสี่ยง (Risk Management)
 
-    mock_response = f"""
-    <strong>🔍 ตรวจพบรูปแบบ:</strong> {selected_pattern}<br>
-    <strong>📈 ราคาปัจจุบัน:</strong> {current_price}<br>
-    <hr>
-    <strong>🎯 ความแม่นยำ:</strong> 89.5%<br>
-    <hr>
-    <strong>📊 การวิเคราะห์แนวโน้ม:</strong><br>
-    🟢 โอกาสปรับตัว <strong>ขึ้น</strong>: {up_percent}%<br> 
-    🔴 โอกาสปรับตัว <strong>ลง</strong>: {down_percent}%<br><br>
-    <div style="color: #d32f2f;">🔴 <strong>Stop Loss (SL):</strong> {sl}</div>
-    <div style="color: #388e3c;">🟢 <strong>Take Profit (TP):</strong> {tp}</div>
-    <hr>
-    {response.text if 'response' in locals() else "วิเคราะห์ตามเทรนด์ปัจจุบัน"}
-    """
+        **ข้อกำหนดการตอบกลับ:**
+        - ตอบเป็นภาษาไทย
+        - ใช้รูปแบบ HTML เพื่อให้แสดงผลสวยงามบนหน้าเว็บ
+        - ใช้สีเขียว (#00e676) สำหรับ TP และสีแดง (#ff4d4d) สำหรับ SL
+        - ใส่กล่องดีไซน์ที่ดูทันสมัย
+        """
 
-    return jsonify({"result": mock_response})
+        # 4. ส่งข้อมูลไปประมวลผลจริง
+        response = model.generate_content([prompt, image])
+        
+        # คืนค่าผลลัพธ์จาก AI กลับไปที่หน้าเว็บ
+        return jsonify({"result": response.text})
 
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({"result": f"<div style='color:red;'>❌ เกิดข้อผิดพลาดจาก AI: {str(e)}<br>โปรดตรวจสอบว่าผูกบัตรใน Google AI Studio หรือยัง</div>"})
+
+# --- 5. การรันเซิร์ฟเวอร์ ---
 if __name__ == '__main__':
-    print("--- Server Simulation Started (No API Key Required) ---")
-    app.run(debug=True, port=5000)
+    # ส่วนนี้จะทำให้รันได้ทั้งในคอม และบน Render (Port จะถูกตั้งอัตโนมัติ)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"--- AI Trading Server Started on Port {port} ---")
+    app.run(host='0.0.0.0', port=port, debug=True)
