@@ -20,15 +20,25 @@ def analyze_chart():
     selected_pattern = random.choice(patterns)
     up_percent = random.randint(60, 85)
     down_percent = 100 - up_percent
+    # --- ส่วนที่เพิ่มใหม่ (คำนวณ SL/TP) ---
+    current_price = round(random.uniform(1.0500, 1.0900), 5)
+    sl = round(current_price - 0.0025, 5) # จุดตัดขาดทุน
+    tp = round(current_price + 0.0050, 5) # จุดทำกำไร
+    # ----------------------------------
 
     mock_response = f"""
     <strong>🔍 ตรวจพบรูปแบบ:</strong> {selected_pattern}<br>
+    <strong>📈 ราคาปัจจุบัน:</strong> {current_price}<br>
+    <hr>
     <strong>🎯 ความแม่นยำ:</strong> 89.5%<br>
     <hr>
     <strong>📊 การวิเคราะห์แนวโน้ม:</strong><br>
-    🟢 โอกาสปรับตัว <strong>ขึ้น</strong>: {up_percent}%<br>
+    🟢 โอกาสปรับตัว <strong>ขึ้น</strong>: {up_percent}%<br> 
     🔴 โอกาสปรับตัว <strong>ลง</strong>: {down_percent}%<br><br>
-    <strong>💡 คำแนะนำจาก AI:</strong> รูปแบบกราฟแสดงถึงแรงซื้อที่หนาแน่นในโซนแนวรับ มีโอกาสที่ราคาจะเบรคเอาท์ (Breakout) ในเร็วๆ นี้ ควรเฝ้าระวังจุด Take Profit ที่แนวต้านถัดไป
+    <div style="color: #d32f2f;">🔴 <strong>Stop Loss (SL):</strong> {sl}</div>
+    <div style="color: #388e3c;">🟢 <strong>Take Profit (TP):</strong> {tp}</div>
+    <hr>
+    {response.text if 'response' in locals() else "วิเคราะห์ตามเทรนด์ปัจจุบัน"}
     """
 
     return jsonify({"result": mock_response})
